@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High Income, High Risk: California's Wildfire Paradox</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Scale Bar -->
+    <link rel="stylesheet" href="./lib/L.Control.BetterScale.css">
+    <script src="./lib/L.Control.BetterScale.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Open Sans', Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        .header {
+            background-color: white;
+            padding: 25px 30px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #2c3e50;
+        }
+
+        .header p {
+            font-size: 16px;
+            color: #5a6c7d;
+            line-height: 1.5;
+            max-width: 900px;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 140px);
+        }
+
+        #map {
+            flex: 1;
+            position: relative;
+        }
+
+        .sidebar {
+            width: 380px;
+            background: white;
+            padding: 25px;
+            overflow-y: auto;
+            box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .legend-section {
+            margin-bottom: 30px;
+        }
+
+        .legend-section h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 20px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+
+        .legend-circle {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid #333;
+        }
+
+        .stats-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            border-left: 4px solid #3498db;
+        }
+
+        .stats-box h4 {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .stats-box p {
+            font-size: 12px;
+            line-height: 1.6;
+            color: #5a6c7d;
+            margin-bottom: 8px;
+        }
+
+        .chart-container {
+            margin-top: 25px;
+            background: white;
+            padding: 20px;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+
+        .chart-title {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        .bar-group {
+            margin-bottom: 8px;
+        }
+
+        .bar-label {
+            font-size: 11px;
+            margin-bottom: 4px;
+            color: #5a6c7d;
+        }
+
+        .bar-container {
+            display: flex;
+            height: 28px;
+            border-radius: 3px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .bar-segment {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+
+        .bar-segment:hover {
+            opacity: 0.8;
+            cursor: pointer;
+        }
+
+        .leaflet-popup-content-wrapper {
+            border-radius: 8px;
+            box-shadow: 0 3px 14px rgba(0, 0, 0, 0.2);
+        }
+
+        .leaflet-popup-content {
+            margin: 15px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .popup-title {
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+
+        .popup-row {
+            margin: 5px 0;
+        }
+
+        .popup-label {
+            font-weight: 600;
+            color: #5a6c7d;
+        }
+
+        .fire-risk-high {
+            color: #E31A1C;
+            font-weight: 700;
+        }
+
+        .fire-risk-moderate {
+            color: #FD8D3C;
+            font-weight: 700;
+        }
+
+        .fire-risk-low {
+            color: #FED976;
+            font-weight: 700;
+        }
+
+        .control-panel {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            margin-bottom: 15px;
+        }
+
+        .control-panel label {
+            display: flex;
+            align-items: center;
+            font-size: 13px;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+
+        .control-panel input[type="checkbox"] {
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        .north-arrow {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            font-size: 20px;
+            font-weight: bold;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1 style="color: #e41a1b; display: inline">High Income, High Risk: </h1>
+    <h1 style="color: #3182BD;display: inline">California's Wildfire Paradox</h1>
+    <p>Higher-income households are more likely to live in wildfire-prone areas, a reverse pattern compared to other
+        environmental hazards.</p>
+</div>
+
+<div class="container">
+    <div id="map">
+        <div class="north-arrow">
+            <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="40" height="40">
+                <path d="M512 195.776L163.296 893.184l351.04-169.568 346.208 169.248L512 195.776z"
+                      fill="#FFFFFF"></path>
+                <path d="M512 84.80237037l466.03377778 932.06755555-463.23757511-226.45357984L45.96622222 1016.86992592 512 84.80237037z m0 86.83762726L131.63876503 932.36246755l383.23510994-185.13191822 377.09899851 184.35519526L512 171.63999763z"
+                      fill="#2c2c2c"></path>
+                <path d="M738.95844978 317.81925925V12.02342875h60.07952119l125.16890548 204.20046695V12.02342875h57.3609908V317.81925925h-61.94365628l-123.26593422-199.42362073V317.81925925z"
+                      fill="#2c2c2c"></path>
+            </svg>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="control-panel">
+            <label>
+                <input type="checkbox" id="toggle-census" checked>
+                Show Census Income Data
+            </label>
+            <label>
+                <input type="checkbox" id="toggle-fire" checked>
+                Show Fire Risk Points
+            </label>
+        </div>
+
+        <div class="legend-section">
+            <h3>Household Income Quantiles</h3>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #EFF3FF;"></div>
+                <span>Lowest 20% ($0 - $46k)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #BDD7E7;"></div>
+                <span>Low 20% ($46k - $72k)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #6BAED6;"></div>
+                <span>Middle 20% ($72k - $94k)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #3182BD;"></div>
+                <span>High 20% ($94k - $124k)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #08519C;"></div>
+                <span>Highest 20% ($124k+)</span>
+            </div>
+        </div>
+
+        <div class="legend-section">
+            <h3>Fire Risk Level</h3>
+            <div class="legend-item">
+                <div class="legend-circle" style="background-color: #FED976; width: 10px; height: 10px;"></div>
+                <span>Low Risk</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-circle" style="background-color: #FD8D3C; width: 14px; height: 14px;"></div>
+                <span>Moderate Risk</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-circle" style="background-color: #E31A1C; width: 18px; height: 18px;"></div>
+                <span>High Risk</span>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-title">Fire Risk Distribution Across Income Quantiles</div>
+            <div class="bar-group">
+                <div class="bar-label">Lowest 20%</div>
+                <div class="bar-container">
+                    <div class="bar-segment" style="width: 73.2%; background-color: #6BAED6;" title="No Risk: 73.2%">
+                        73.2%
+                    </div>
+                    <div class="bar-segment" style="width: 22.1%; background-color: #FED976;" title="Low Risk: 22.1%">
+                        22.1%
+                    </div>
+                    <div class="bar-segment" style="width: 3.5%; background-color: #FD8D3C;"
+                         title="Moderate: 3.5%"></div>
+                    <div class="bar-segment" style="width: 1.2%; background-color: #E31A1C;" title="High: 1.2%"></div>
+                </div>
+            </div>
+
+            <div class="bar-group">
+                <div class="bar-label">Low 20%</div>
+                <div class="bar-container">
+                    <div class="bar-segment" style="width: 69.3%; background-color: #6BAED6;" title="No Risk: 69.3%">
+                        69.3%
+                    </div>
+                    <div class="bar-segment" style="width: 27%; background-color: #FED976;" title="Low Risk: 27%">27%
+                    </div>
+                    <div class="bar-segment" style="width: 2.8%; background-color: #FD8D3C;"
+                         title="Moderate: 2.8%"></div>
+                    <div class="bar-segment" style="width: 0.9%; background-color: #E31A1C;" title="High: 0.9%"></div>
+                </div>
+            </div>
+
+            <div class="bar-group">
+                <div class="bar-label">Middle 20%</div>
+                <div class="bar-container">
+                    <div class="bar-segment" style="width: 62.6%; background-color: #6BAED6;" title="No Risk: 62.6%">
+                        62.6%
+                    </div>
+                    <div class="bar-segment" style="width: 32.5%; background-color: #FED976;" title="Low Risk: 32.5%">
+                        32.5%
+                    </div>
+                    <div class="bar-segment" style="width: 3.6%; background-color: #FD8D3C;"
+                         title="Moderate: 3.6%"></div>
+                    <div class="bar-segment" style="width: 1.3%; background-color: #E31A1C;" title="High: 1.3%"></div>
+                </div>
+            </div>
+
+            <div class="bar-group">
+                <div class="bar-label">High 20%</div>
+                <div class="bar-container">
+                    <div class="bar-segment" style="width: 56.3%; background-color: #6BAED6;" title="No Risk: 56.3%">
+                        56.3%
+                    </div>
+                    <div class="bar-segment" style="width: 38.3%; background-color: #FED976;" title="Low Risk: 38.3%">
+                        38.3%
+                    </div>
+                    <div class="bar-segment" style="width: 3.9%; background-color: #FD8D3C;"
+                         title="Moderate: 3.9%"></div>
+                    <div class="bar-segment" style="width: 1.5%; background-color: #E31A1C;" title="High: 1.5%"></div>
+                </div>
+            </div>
+
+            <div class="bar-group">
+                <div class="bar-label">Highest 20%</div>
+                <div class="bar-container">
+                    <div class="bar-segment" style="width: 48.6%; background-color: #6BAED6;" title="No Risk: 48.6%">
+                        48.6%
+                    </div>
+                    <div class="bar-segment" style="width: 44.8%; background-color: #FED976;" title="Low Risk: 44.8%">
+                        44.8%
+                    </div>
+                    <div class="bar-segment" style="width: 5.1%; background-color: #FD8D3C;" title="Moderate: 5.1%">
+                        5.1%
+                    </div>
+                    <div class="bar-segment" style="width: 1.5%; background-color: #E31A1C;" title="High: 1.5%"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-box">
+            <h4>Kendall's Tau = 0.1594</h4>
+            <p>There is a weak positive rank correlation between household income and fire risk levels (τ = 0.159),
+                indicating that higher income areas tend to have slightly higher fire risk rankings.</p>
+            <p style="margin-top: 10px; font-style: italic;">This reveals a counterintuitive trend: wildfire risk in
+                California increases with household income. Fire risk becomes an "amenity hazard," disproportionately
+                affecting affluent residents.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize map centered on California
+    const map = L.map('map', {
+        center: [37.0, -119.5],
+        zoom: 6,
+        zoomControl: true
+    });
+
+    // 创建自定义窗格 - 使用更明确的z-index值
+    map.createPane('censusPane');
+    map.getPane('censusPane').style.zIndex = 200;  // 降低census层级
+    map.getPane('censusPane').style.pointerEvents = 'auto';
+
+    map.createPane('firePane');
+    map.getPane('firePane').style.zIndex = 600;    // 提高fire层级，高于tooltip
+    map.getPane('firePane').style.pointerEvents = 'auto';
+
+    // Add base layer
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap contributors © CARTO',
+        maxZoom: 19
+    }).addTo(map);
+
+    const incomeColors = ['#EFF3FF', '#BDD7E7', '#6BAED6', '#3182BD', '#08519C'];
+    const fireColors = {1: '#FED976', 2: '#FD8D3C', 3: '#E31A1C'};
+    const fireLabels = {1: 'Low Risk', 2: 'Moderate Risk', 3: 'High Risk'};
+
+    function getFireSizes(zoom) {
+        const scale = Math.max(0.3, Math.min(1.5, (zoom - 4) / 8));
+        return {
+            1: 3 * scale,
+            2: 6 * scale,
+            3: 9 * scale
+        };
+    }
+
+    let censusLayer, fireLayer;
+    let layersLoaded = {census: false, fire: false};
+
+    // 确保图层顺序的函数
+    function ensureLayerOrder() {
+        if (layersLoaded.census && layersLoaded.fire) {
+            console.log('Both layers loaded, ensuring order...');
+            // 强制重新排序
+            if (map.hasLayer(censusLayer)) {
+                censusLayer.bringToBack();
+            }
+            if (map.hasLayer(fireLayer)) {
+                fireLayer.bringToFront();
+            }
+        }
+    }
+
+    // Load census income GeoJSON (4 slices)
+    async function loadCensusData() {
+        const censusFiles = [
+            './data/census_slice_1.geojson',
+            './data/census_slice_2.geojson',
+            './data/census_slice_3.geojson',
+            './data/census_slice_4.geojson'
+        ];
+
+        try {
+            // 并行加载所有文件
+            const dataArray = await Promise.all(
+                censusFiles.map(file => fetch(file).then(res => res.json()))
+            );
+
+            // 合并所有 features
+            const mergedData = {
+                type: 'FeatureCollection',
+                features: dataArray.flatMap(data => data.features)
+            };
+
+            console.log('Census data loaded:', mergedData.features.length, 'features');
+
+            censusLayer = L.geoJSON(mergedData, {
+                pane: 'censusPane',
+                style: function (feature) {
+                    const quantile = feature.properties.income_quantile_num;
+                    const colorIndex = (quantile && quantile >= 1 && quantile <= 5) ? quantile - 1 : 2;
+
+                    return {
+                        fillColor: incomeColors[colorIndex],
+                        weight: 0.5,
+                        opacity: 1,
+                        color: 'white',
+                        fillOpacity: 0.75
+                    };
+                },
+                onEachFeature: function (feature, layer) {
+                    const income = feature.properties.income_clean;
+                    const quantile = feature.properties.income_quantile;
+
+                    layer.bindPopup(`
+                    <div class="popup-title">Census Block Group</div>
+                    <div class="popup-row"><span class="popup-label">Median Income:</span> ${income ? income.toLocaleString() : 'N/A'}</div>
+                    <div class="popup-row"><span class="popup-label">Income Quantile:</span> ${quantile || 'N/A'}</div>
+                `);
+
+                    layer.on('mouseover', function () {
+                        this.setStyle({weight: 2, color: '#2c3e50'});
+                    });
+                    layer.on('mouseout', function () {
+                        this.setStyle({weight: 0.5, color: 'white'});
+                    });
+                }
+            }).addTo(map);
+
+            layersLoaded.census = true;
+            ensureLayerOrder();
+            console.log('Census layer added to censusPane');
+        } catch (error) {
+            console.error('Error loading census data:', error);
+        }
+    }
+
+    // 调用函数
+    loadCensusData();
+
+    // Load fire risk GeoJSON
+    fetch('./data/fire_risk_for_leaflet_subset.geojson')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Fire risk data loaded:', data.features.length, 'features');
+
+            const currentZoom = map.getZoom();
+            const fireSizes = getFireSizes(currentZoom);
+
+            fireLayer = L.geoJSON(data, {
+                pane: 'firePane',  // 指定使用firePane
+                pointToLayer: function (feature, latlng) {
+                    const level = feature.properties.fire_risk_level;
+
+                    return L.circleMarker(latlng, {
+                        radius: fireSizes[level] || 5,
+                        fillColor: fireColors[level] || '#999',
+                        color: '#000',
+                        weight: 1,
+                        opacity: 0.9,
+                        fillOpacity: 0.7
+                    });
+                },
+                style: function (feature) {
+                    const level = feature.properties.fire_risk_level;
+                    return {
+                        fillColor: fireColors[level] || '#999',
+                        fillOpacity: 0.5,
+                        color: fireColors[level] || '#999',
+                        weight: 2,
+                        opacity: 0.8
+                    };
+                },
+                filter: function (feature) {
+                    return feature.properties.fire_risk_level && feature.properties.fire_risk_level > 0;
+                },
+                onEachFeature: function (feature, layer) {
+                    const level = feature.properties.fire_risk_level;
+                    const label = feature.properties.fire_risk_label || fireLabels[level] || 'Unknown';
+                    const riskClass = level === 3 ? 'fire-risk-high' : level === 2 ? 'fire-risk-moderate' : 'fire-risk-low';
+
+                    layer.bindPopup(`
+              <div class="popup-title">Fire Hazard Zone</div>
+              <div class="popup-row"><span class="popup-label">Risk Level:</span> <span class="${riskClass}">${label}</span></div>
+            `);
+                }
+            }).addTo(map);
+
+            layersLoaded.fire = true;
+            ensureLayerOrder();
+            console.log('Fire layer added to firePane with', fireLayer.getLayers().length, 'visible features');
+
+            // 监听缩放事件
+            map.on('zoomend', function () {
+                const zoom = map.getZoom();
+                const newSizes = getFireSizes(zoom);
+
+                fireLayer.eachLayer(function (layer) {
+                    if (layer instanceof L.CircleMarker) {
+                        const level = layer.feature.properties.fire_risk_level;
+                        layer.setRadius(newSizes[level] || 5);
+                    }
+                });
+            });
+        })
+        .catch(error => console.error('Error loading fire risk data:', error));
+
+    // Toggle controls - 只保留一次
+    document.getElementById('toggle-census').addEventListener('change', function (e) {
+        if (censusLayer) {
+            if (e.target.checked) {
+                map.addLayer(censusLayer);
+                ensureLayerOrder();  // 重新确保顺序
+            } else {
+                map.removeLayer(censusLayer);
+            }
+        }
+    });
+
+    document.getElementById('toggle-fire').addEventListener('change', function (e) {
+        if (fireLayer) {
+            if (e.target.checked) {
+                map.addLayer(fireLayer);
+                ensureLayerOrder();  // 重新确保顺序
+            } else {
+                map.removeLayer(fireLayer);
+            }
+        }
+    });
+
+    // Add scale control
+    // Add better scale control with checkered pattern
+    L.control.betterscale({
+        position: 'bottomleft',
+        imperial: false,  // 关闭英制单位
+        metric: true      // 只显示公制单位
+    }).addTo(map);
+</script>
+</body>
+</html>

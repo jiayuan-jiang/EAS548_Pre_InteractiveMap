@@ -1,0 +1,40 @@
+{
+  "generated_at": "2025-10-02 17:43:43",
+  "description": "Optimized census income and fire risk data for interactive Leaflet mapping",
+  "optimization": "Only essential fields retained to minimize file size",
+  "census_data": {
+    "file": "census_income_for_leaflet.geojson",
+    "file_size_mb": 214.76,
+    "geometry_type": "Polygon",
+    "record_count": 24010,
+    "crs": "WGS 84",
+    "fields": {
+      "income_clean": "Median household income (USD, cleaned)",
+      "income_quantile": "Income category by quintile (text)",
+      "income_quantile_num": "Income quantile (1-5, for coloring)"
+    },
+    "color_mapping": {
+      "1 (Lowest 20%)": "#EFF3FF",
+      "2 (Low 20%)": "#BDD7E7",
+      "3 (Middle 20%)": "#6BAED6",
+      "4 (High 20%)": "#3182BD",
+      "5 (Highest 20%)": "#08519C"
+    }
+  },
+  "fire_risk_data": {
+    "file": "fire_risk_for_leaflet.geojson",
+    "file_size_mb": 140.09,
+    "geometry_type": "Point",
+    "record_count": 5395,
+    "crs": "WGS 84",
+    "fields": {
+      "fire_risk_level": "Fire risk level (1=Low, 2=Moderate, 3=High)",
+      "fire_risk_label": "Fire risk level (text label)"
+    },
+    "color_mapping": {
+      "1 (Low Risk)": "#FED976",
+      "2 (Moderate Risk)": "#FD8D3C",
+      "3 (High Risk)": "#E31A1C"
+    }
+  }
+}
